@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>super-pong</title>
+<style>
+* {
+	padding: 0;
+	margin: 0;
+}
+</style>
+<script src="js/phaser.js"></script>
+</head>
+<body>
+
+
+	<script>
+		var game = new Phaser.Game(1024, 600, Phaser.CANVAS, null, {
+			preload : preload,
+			create : create,
+			update : update,
+			render: render
+		});
+
+		
+		var playing = false;
+		var startButton; 
+		var startButton2; 
+				
+		var paddle1;
+		var paddle2;
+		var ball;
+		var p1life = 3;
+		var p2life = 3;
+		var lifeLostText;
+		var pongText;
+		var lives1;
+		var lives2;
+		var timer1;
+		var timer2;
+		var	bricks;
+		var brick;
+		var bspeedDown;
+		var bspeedUp;
+		var blife;
+		var bpmText;
+		var emitter;
+		var cpu = true;
+		var timer3;
+		var pong;
+		var bspeedDowns;
+		var bspeedUps;
+		var blifes;
+		
+		var bmd;
+		var area;
+		var dropTime = 0;
+				
+		function preload() {
+			game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+			game.scale.pageAlignHorizontally = true;
+			game.scale.pageAlignVertically = true;
+			game.stage.backgroundColor = '#000000';
+			game.load.image('paddle', 'img/pong.png');
+			game.load.image('ball', 'img/ball.png');
+			game.load.image('life', 'img/life.png');
+			game.load.image('brick', 'img/event1.png');
+			game.load.image('speedUp', 'img/speedup.png');
+			game.load.image('speedDown', 'img/speedDown.png');
+			game.load.image('water', 'img/bubble.png');
+			game.load.image('title', 'img/title.png');
+		
+			game.load.image('back', 'img/back.png');
+			game.load.spritesheet('button', 'img/solo.png', 376, 82);
+			game.load.spritesheet('button2', 'img/dual.png', 376, 82);
+			
+			
+			 game.load.image('title', 'img/title.png');
+			
+		}
+
+		function create() {
+			
+			pong=0;
+				
+			
+		pongText = game.add.text(game.world.width*0.5, game.world.height*0.05, 'PONG : '+pong, { font: '30px Arial', fill: '#EBFBFF' });
+		pongText.anchor.set(0.5);
+			
+		
+			timer1 = game.time.create(false);
+			timer1.loop(20000, speedUp, this);		
+			timer2 = game.time.create(false);
+			timer2.loop(10000, itemEvent, this);	
+			timer3 = game.time.create(false);
+			timer3.loop(0, cpuControll, this);
+			
+			paddle1 = game.add.sprite(35, 50, 'paddle');
+			paddle2 = game.add.sprite(960, 50, 'paddle');
+
+		
+			lives1 = game.add.group();
+			
+			bricks=game.add.group();
+			bspeedDowns=game.add.group();
+			bspeedUps=game.add.group();
+			blifes=game.add.group();
+				
+			for (var i = 0; i < 3; i++) {
+				var life1 = lives1.create(970 - (i * 30), 10, 'life');
+				life1.scale.setTo(0.2, 0.2);
+		
+			}
+			;
+
+			lives2 = game.add.group();
+			for (var i = 0; i < 3; i++) {
+				var life2 = lives2.create(10 + (i * 30), 10,'life');
+				life2.scale.setTo(0.2, 0.2);
+		
+			}
+			;
+
+			ball = game.add.sprite(game.world.width * 0.5,
+					Math.random()*700, 'ball');
+			ball.anchor.set(0.5);
+			ball.scale.setTo(1.2,1.2);
+			
+			  emitter = game.add.emitter(game.world.centerX, 1000, 1000);
+
+			    emitter.makeParticles('ball');
+
+			    emitter.setXSpeed(0, 0);
+			    emitter.setYSpeed(0, 0);
+
+			    emitter.setRotation(0, 0);
+			    emitter.setAlpha(0.3, 0, 300);
+			    emitter.setScale(1, 0, 1, 0, 400, Phaser.Easing.Quintic.Out);
+			    emitter.gravity = -100;
+
+			    emitter.start(false, 4000, 40);
+			
+			game.physics.startSystem(Phaser.Physics.ARCADE);
+			game.physics.enable(ball, Phaser.Physics.ARCADE);
+				
+			
+			ball.body.collideWorldBounds = true;
+			ball.body.bounce.set(1);
+			game.physics.enable(paddle1, Phaser.Physics.ARCADE);
+			game.physics.enable(paddle2, Phaser.Physics.ARCADE);
+
+			paddle1.body.immovable = true;
+			paddle2.body.immovable = true;
+					
+			game.physics.arcade.checkCollision.left = false;
+			game.physics.arcade.checkCollision.right = false;
+			ball.checkWorldBounds = true;
+
+			ball.events.onOutOfBounds.add(ballLeaveScreen, this);
+
+			this.upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
+			this.downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
+
+			this.leftKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
+			this.rightKey = game.input.keyboard.addKey(Phaser.Keyboard.S);
+		
+			ball.body.maxVelocity.x= 1000;
+			ball.body.maxVelocity.y= 1000;
+	
+	
+			back = game.add.sprite(0, 0, 'back');
+			
+			bmd = game.make.bitmapData(1024, 600);
+
+			bmd.addToWorld();
+
+			area = new Phaser.Rectangle(200, 350, 600, 8);
+
+			bmd.copyRect('title', area, 200, 0);
+					
+	
+	startButton = game.add.button(game.world.width*0.5, game.world.height*0.73, 'button', startGame, this, 1, 0, 2);
+			
+			startButton.anchor.set(0.5);
+			startButton.scale.setTo(0.5,0.5);
+			
+			startButton2 = game.add.button(game.world.width*0.5, game.world.height*0.8, 'button2', startGame2, this, 1, 0, 2);
+			
+			startButton2.anchor.set(0.5);
+			startButton2.scale.setTo(0.5,0.5);
+					
+			
+		}
+
+		function update() {
+
+			if (area.y > 0 && game.time.now > dropTime)
+			{
+				for (var y = 0; y < area.y; y++)
+				{
+					bmd.copyRect('title', area, 200, y);
+				}
+
+				area.y--;
+				dropTime = game.time.now + 15;
+			}
+		
+			
+			if(playing){
+				timer3.start();
+				var px = ball.body.velocity.x;
+			    var py = ball.body.velocity.y;
+
+			    px *= -1;
+			    py *= -1;
+
+			    emitter.minParticleSpeed.set(px, py);
+			    emitter.maxParticleSpeed.set(px, py);
+
+			    emitter.emitX = ball.x;
+			    emitter.emitY = ball.y;
+				
+			
+			if (this.upKey.isDown&&paddle2.y>0) {
+				paddle2.y -= 10;
+
+			}
+			if (this.downKey.isDown&&paddle2.y<520) {
+				paddle2.y += 10;
+
+			}
+			
+			if(!cpu){	
+			if (this.leftKey.isDown&&paddle1.y>0) {
+				paddle1.y -= 10;
+
+			}
+			if (this.rightKey.isDown&&paddle1.y<520) {
+				paddle1.y += 10;
+			}
+			}
+			}
+					
+			
+			game.physics.arcade.collide(ball, paddle1, ballHitpaddle1);
+			
+			game.physics.arcade.collide(ball, paddle2, ballHitpaddle2);
+			
+			game.physics.arcade.collide(ball, bricks, ballHitBrick);
+		
+			 game.physics.arcade.overlap(ball, bspeedUps, ballHitSpeedUp, null, this);
+			
+			 game.physics.arcade.overlap(ball, bspeedDowns, ballHitSpeedDown, null, this);
+			 game.physics.arcade.overlap(ball, blifes, ballHitBlife, null, this);
+			 		 				 
+		}
+
+function ballHitSpeedUp(ball, bspeedUp) {
+			
+	
+	bspeedUp.kill();
+	
+	if(ball.body.velocity.x>0 && ball.body.velocity.y<0){
+		ball.body.velocity.x +=100;
+		ball.body.velocity.y -=100;
+	}
+	
+	else if(ball.body.velocity.x>0 && ball.body.velocity.y>0){
+		ball.body.velocity.x +=100;
+		ball.body.velocity.y +=100;
+	}	
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y>0){
+		ball.body.velocity.x -=100;
+		ball.body.velocity.y +=100;
+	}		
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y<0){
+		ball.body.velocity.x -=100;
+		ball.body.velocity.y -=100;
+	}	
+	
+		}
+				
+function ballHitSpeedDown(ball, bspeedDown) {
+			
+	
+	bspeedDown.kill();
+	
+	if(ball.body.velocity.x>0 && ball.body.velocity.y<0){
+		ball.body.velocity.x -=150;
+		ball.body.velocity.y +=150;
+	}
+	
+	else if(ball.body.velocity.x>0 && ball.body.velocity.y>0){
+		ball.body.velocity.x -=150;
+		ball.body.velocity.y -=150;
+	}	
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y>0){
+		ball.body.velocity.x +=150;
+		ball.body.velocity.y -=150;
+	}		
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y<0){
+		ball.body.velocity.x +=150;
+		ball.body.velocity.y +=150;
+	}	
+	
+	
+		}
+
+
+function ballHitBlife(ball, blife) {
+			
+	
+	blife.kill();
+	
+	
+	if(ball.body.velocity.x>0 && ball.body.velocity.y<0){
+		
+		if(p2life !=5){
+		p2life++;
+		
+		var life2 = lives2.create(10 + ((p2life-1) * 30), 10,'life');
+		life2.scale.setTo(0.2, 0.2);
+		
+		}
+	}
+
+	else if(ball.body.velocity.x>0 && ball.body.velocity.y>0){
+		if(p2life !=5){
+		p2life++;
+		var life2 = lives2.create(10 + ((p2life-1) * 30), 10,'life');
+		life2.scale.setTo(0.2, 0.2);
+		}
+	}	
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y>0){
+		if(p1life !=5){
+		p1life++;
+		var life1 = lives1.create(970 - ((p1life-1) * 30), 10, 'life');
+		life1.scale.setTo(0.2, 0.2);
+		}
+	}		
+	else if(ball.body.velocity.x<0 && ball.body.velocity.y<0){
+		if(p1life !=5){
+		p1life++;
+		var life1 = lives1.create(970 - ((p1life-1) * 30), 10, 'life');
+		life1.scale.setTo(0.2, 0.2);
+		}
+	}	
+	
+		}
+
+
+function cpuControll() {
+	if(cpu&&(ball.body.velocity.x<0||ball.x>700||ball.x<300)){
+		
+		if(paddle1.y+35<ball.y){
+		paddle1.y = paddle1.y +7;			
+	};
+	if(paddle1.y+35>ball.y){
+	paddle1.y = paddle1.y -7;		
+	};
+	}else if(cpu&&ball.x>300&&ball.x<450){
+		
+		paddle1.y =paddle1.y +2;
+	}else if(cpu&&ball.x>450&&ball.x<700){
+		
+		paddle1.y =paddle1.y -2;
+	}
+	;
+}
+
+
+function ballHitpaddle1(ball, paddle1) {
+	
+	 pong++;
+
+	    pongText.setText("PONG : " + pong );	
+	
+	 ball.body.velocity.x = -1*13*(paddle1.x-ball.x);
+  
+}
+
+
+function ballHitpaddle2(ball, paddle2) {
+	 pong++;
+
+	    pongText.setText("PONG : " + pong );	
+	ball.body.velocity.x = -1*30*(paddle2.x-ball.x);
+	
+}
+
+		function ballHitBrick(ball, brick) {
+			
+	 
+		    brick.kill();
+		}
+		
+		
+		function ballLeaveScreen() {
+
+			timer1.pause();
+			timer2.pause();
+			timer3.pause();
+			if (ball.x > game.world.width * 0.5) {
+				p1life--;
+
+				if (p1life == 0) {
+					
+					live1 = lives1.getChildAt(p1life);
+					live1.destroy();
+					alert('2p win!');
+					location.reload();
+				} else {
+					ball.reset(game.world.width * 0.5, Math.random()*700);
+					bricks.removeAll(true);
+					
+					bspeedDowns.removeAll(true);
+					bspeedUps.removeAll(true);
+					blifes.removeAll(true);
+					
+					lifeLostText = game.add.text(game.world.width*0.5, game.world.height*0.8, '2P Win!! Click ', { font: '30px Arial', fill: '#EBFBFF' });
+					lifeLostText.anchor.set(0.5);
+					lifeLostText.visible = false;
+					
+					live1 = lives1.getChildAt(p1life);
+					live1.destroy();
+				
+					lifeLostText.visible = true;
+					
+					game.input.onDown.addOnce(function(){
+						
+			            lifeLostText.visible = false;
+			            ball.body.velocity.set(-300, 300);
+			        	timer1.resume();
+			        	timer2.resume();
+			        	timer3.resume();
+			        	pong=0;
+			        	  pongText.setText("PONG : " + pong );	
+			        }, this);
+					
+				};
+
+			} else {
+				p2life--;
+				if (p2life == 0) {
+					
+					live2 = lives2.getChildAt(p2life);
+					live2.destroy();
+					alert('1p win!');
+					location.reload();
+				} else {
+					ball.reset(game.world.width * 0.5, Math.random()*700);
+					bricks.removeAll(true);
+					bspeedDowns.removeAll(true);
+					bspeedUps.removeAll(true);
+					blifes.removeAll(true);
+					lifeLostText = game.add.text(game.world.width*0.5, game.world.height*0.8, '1P Win!! Click', { font: '30px Arial', fill: '#EBFBFF' });
+					lifeLostText.anchor.set(0.5);
+					lifeLostText.visible = false;
+					
+					
+					live2 = lives2.getChildAt(p2life);
+					live2.destroy();
+					
+					
+					lifeLostText.visible = true;
+					game.input.onDown.addOnce(function(){
+			            lifeLostText.visible = false;
+			            ball.body.velocity.set(300, -300);
+			            
+			        	timer1.resume();
+			        	timer2.resume();
+			          	timer3.resume();
+			         	pong=0;
+			         	  pongText.setText("PONG : " + pong );	
+			        }, this);
+					
+				};
+			}
+		}
+		
+		function startGame() {
+		    startButton.destroy();
+		    startButton2.destroy();
+		    back.destroy();
+		    bmd.destroy();
+		    ball.body.velocity.set(300, -300);
+		    timer1.start();
+			timer2.start();
+		    playing = true;
+		}
+		
+		
+		function startGame2() {
+		    startButton.destroy();
+		    startButton2.destroy();
+		    back.destroy();
+		    bmd.destroy();
+		    ball.body.velocity.set(300, -300);
+		    timer1.start();
+			timer2.start();
+			cpu=false;
+		    playing = true;
+		}
+		
+
+		function speedUp(){
+			
+			if(ball.body.velocity.x>0 && ball.body.velocity.y<0){
+				ball.body.velocity.x +=150;
+				ball.body.velocity.y -=150;
+			}
+			
+			else if(ball.body.velocity.x>0 && ball.body.velocity.y>0){
+				ball.body.velocity.x +=150;
+				ball.body.velocity.y +=150;
+			}	
+			else if(ball.body.velocity.x<0 && ball.body.velocity.y>0){
+				ball.body.velocity.x -=150;
+				ball.body.velocity.y +=150;
+			}		
+			else if(ball.body.velocity.x<0 && ball.body.velocity.y<0){
+				ball.body.velocity.x -=150;
+				ball.body.velocity.y -=150;
+			}	
+			
+		}
+		
+		
+function itemEvent(){
+			
+	var eve=parseInt((Math.random()*5+1));
+	
+	
+	if(eve==1){
+	bspeedDown=game.add.sprite(400+(Math.random() *250), Math.random() * 570, 'speedDown');
+	bspeedDown.scale.setTo(0.05,0.05);
+	game.physics.enable(bspeedDown, Phaser.Physics.ARCADE);
+	bspeedDowns.add(bspeedDown);
+	}else if(eve==3){
+	bspeedUp=game.add.sprite(400+(Math.random() *250), Math.random() * 570, 'speedUp');
+	bspeedUp.scale.setTo(0.05,0.05);
+	game.physics.enable(bspeedUp, Phaser.Physics.ARCADE);
+	bspeedUps.add(bspeedUp);
+}else if(eve==2){	
+	brick = game.add.sprite(400+(Math.random() *250), Math.random() * 570, 'brick');
+	game.physics.enable(brick, Phaser.Physics.ARCADE);
+
+	brick.body.immovable = true;
+	bricks.add(brick);
+}else if(eve==4){	
+	
+	blife=game.add.sprite(400+(Math.random() *250), Math.random() * 570, 'life');
+	blife.scale.setTo(0.4,0.4);
+	game.physics.enable(blife, Phaser.Physics.ARCADE);
+	blifes.add(blife);
+}else if(eve==5){	
+	
+	brick = game.add.sprite(400+(Math.random() *250), Math.random() * 570, 'brick');
+	game.physics.enable(brick, Phaser.Physics.ARCADE);
+
+	brick.body.immovable = true;
+	bricks.add(brick);
+}
+
+
+		}		
+		
+		function render() {
+		//	game.debug.text()
+		// game.debug.spriteInfo(ball, 32, 32);
+		//	game.debug.text('Velocity: ' + ball.body.velocity, 32, 200);
+		//	 game.debug.text('Acceleration: ' + ball.body.acceleration, 32, 232);
+		//	  game.debug.text('Acceleration: ' + ball.body.angularAcceleration, 32, 262);
+
+		}
+		
+	</script>
+
+</body>
+</html>
